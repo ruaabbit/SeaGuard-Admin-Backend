@@ -1,0 +1,130 @@
+package handlers
+
+import (
+	"github.com/gin-gonic/gin"
+	"seaguard-admin-backend/models"
+	"seaguard-admin-backend/service"
+	"strconv"
+)
+
+// VolunteerHandler 志愿者处理器结构
+type VolunteerHandler struct {
+	service service.VolunteerService
+}
+
+// NewVolunteerHandler 创建志愿者处理器实例
+func NewVolunteerHandler(service service.VolunteerService) *VolunteerHandler {
+	return &VolunteerHandler{
+		service: service,
+	}
+}
+
+// ListVolunteers godoc
+// @Summary 获取志愿者列表
+// @Description 获取所有志愿者的列表
+// @Tags 志愿者管理
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Volunteer
+// @Failure 500 {object} map[string]string
+// @Router /volunteers [get]
+func (h *VolunteerHandler) ListVolunteers(c *gin.Context) {
+	volunteers, err := h.service.GetAllVolunteers()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "获取志愿者列表失败"})
+		return
+	}
+	c.JSON(200, volunteers)
+}
+
+// CreateVolunteer godoc
+// @Summary 创建新志愿者
+// @Description 创建一个新的志愿者信息
+// @Tags 志愿者管理
+// @Accept json
+// @Produce json
+// @Param volunteer body models.Volunteer true "志愿者信息"
+// @Success 201 {object} models.Volunteer
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /volunteers [post]
+func (h *VolunteerHandler) CreateVolunteer(c *gin.Context) {
+	var volunteer models.Volunteer
+	if err := c.ShouldBindJSON(&volunteer); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.CreateVolunteer(&volunteer); err != nil {
+		c.JSON(500, gin.H{"error": "创建志愿者失败"})
+		return
+	}
+
+	c.JSON(201, volunteer)
+}
+
+// UpdateVolunteer godoc
+// @Summary 更新志愿者信息
+// @Description 更新指定ID的志愿者信息
+// @Tags 志愿者管理
+// @Accept json
+// @Produce json
+// @Param id path int true "志愿者ID"
+// @Param volunteer body models.Volunteer true "志愿者信息"
+// @Success 200 {object} models.Volunteer
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /volunteers/{id} [put]
+func (h *VolunteerHandler) UpdateVolunteer(c *gin.Context) {
+	var volunteer models.Volunteer
+	if err := c.ShouldBindJSON(&volunteer); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	id := uint(0)
+	if idParam := c.Param("id"); idParam != "" {
+		if n, err := strconv.ParseUint(idParam, 10, 32); err == nil {
+			id = uint(n)
+		} else {
+			c.JSON(400, gin.H{"error": "无效的ID参数"})
+			return
+		}
+	}
+
+	if err := h.service.UpdateVolunteer(id, &volunteer); err != nil {
+		c.JSON(500, gin.H{"error": "更新志愿者失败"})
+		return
+	}
+
+	c.JSON(200, volunteer)
+}
+
+// DeleteVolunteer godoc
+// @Summary 删除志愿者
+// @Description 删除指定ID的志愿者
+// @Tags 志愿者管理
+// @Accept json
+// @Produce json
+// @Param id path int true "志愿者ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /volunteers/{id} [delete]
+func (h *VolunteerHandler) DeleteVolunteer(c *gin.Context) {
+	id := uint(0)
+	if idParam := c.Param("id"); idParam != "" {
+		if n, err := strconv.ParseUint(idParam, 10, 32); err == nil {
+			id = uint(n)
+		} else {
+			c.JSON(400, gin.H{"error": "无效的ID参数"})
+			return
+		}
+	}
+
+	if err := h.service.DeleteVolunteer(id); err != nil {
+		c.JSON(500, gin.H{"error": "删除志愿者失败"})
+		return
+	}
+	c.JSON(200, gin.H{"message": "志愿者删除成功"})
+}

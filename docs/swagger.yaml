@@ -1,0 +1,416 @@
+basePath: /api
+definitions:
+  models.Activity:
+    properties:
+      capacity:
+        type: integer
+      created_at:
+        type: string
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      registered:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Registration:
+    properties:
+      activity_id:
+        type: integer
+      create_time:
+        type: string
+      email:
+        type: string
+      emergency_contact:
+        type: string
+      emergency_phone:
+        type: string
+      id:
+        type: integer
+      id_card:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.Volunteer:
+    properties:
+      activities:
+        type: integer
+      address:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      hours:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+      phone:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: 这是海洋卫士志愿者管理系统的后端API文档
+  termsOfService: http://swagger.io/terms/
+  title: SeaGuard Admin API
+  version: "1.0"
+paths:
+  /activities:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有志愿者活动的列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Activity'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取活动列表
+      tags:
+      - 活动管理
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的志愿者活动
+      parameters:
+      - description: 活动信息
+        in: body
+        name: activity
+        required: true
+        schema:
+          $ref: '#/definitions/models.Activity'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Activity'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建新活动
+      tags:
+      - 活动管理
+  /activities/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定ID的活动
+      parameters:
+      - description: 活动ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 删除活动
+      tags:
+      - 活动管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定ID的活动信息
+      parameters:
+      - description: 活动ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 活动信息
+        in: body
+        name: activity
+        required: true
+        schema:
+          $ref: '#/definitions/models.Activity'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Activity'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新活动信息
+      tags:
+      - 活动管理
+  /activities/{id}/registrations:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定活动的所有报名记录
+      parameters:
+      - description: 活动ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Registration'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取活动报名列表
+      tags:
+      - 报名管理
+  /registrations/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: 更新指定报名记录的状态
+      parameters:
+      - description: 报名ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 状态信息
+        in: body
+        name: status
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新报名状态
+      tags:
+      - 报名管理
+  /volunteers:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有志愿者的列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Volunteer'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 获取志愿者列表
+      tags:
+      - 志愿者管理
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的志愿者信息
+      parameters:
+      - description: 志愿者信息
+        in: body
+        name: volunteer
+        required: true
+        schema:
+          $ref: '#/definitions/models.Volunteer'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Volunteer'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 创建新志愿者
+      tags:
+      - 志愿者管理
+  /volunteers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定ID的志愿者
+      parameters:
+      - description: 志愿者ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 删除志愿者
+      tags:
+      - 志愿者管理
+    put:
+      consumes:
+      - application/json
+      description: 更新指定ID的志愿者信息
+      parameters:
+      - description: 志愿者ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 志愿者信息
+        in: body
+        name: volunteer
+        required: true
+        schema:
+          $ref: '#/definitions/models.Volunteer'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Volunteer'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 更新志愿者信息
+      tags:
+      - 志愿者管理
+swagger: "2.0"
