@@ -20,14 +20,16 @@ func NewRegistrationHandler(service service.RegistrationService) *RegistrationHa
 
 // ListActivityRegistrations godoc
 // @Summary 获取活动报名列表
-// @Description 获取指定活动的所有报名记录
+// @Description 获取指定活动的所有报名记录（需要志愿者权限）
 // @Tags 报名管理
 // @Accept json
 // @Produce json
+// @Security ApiKeyAuth
 // @Param id path int true "活动ID"
-// @Success 200 {array} models.Registration
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Success 200 {object} models.RegistrationsResponse "报名记录列表"
+// @Failure 400 {object} models.Response "无效的活动ID"
+// @Failure 403 {object} models.Response "无权限访问"
+// @Failure 500 {object} models.Response "服务器内部错误"
 // @Router /activities/{id}/registrations [get]
 func (h *RegistrationHandler) ListActivityRegistrations(c *gin.Context) {
 	id := uint(0)
@@ -51,15 +53,17 @@ func (h *RegistrationHandler) ListActivityRegistrations(c *gin.Context) {
 
 // UpdateRegistrationStatus godoc
 // @Summary 更新报名状态
-// @Description 更新指定报名记录的状态
+// @Description 更新指定报名记录的状态（需要志愿者权限）
 // @Tags 报名管理
 // @Accept json
 // @Produce json
+// @Security ApiKeyAuth
 // @Param id path int true "报名ID"
-// @Param status body object true "状态信息" 
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
+// @Param status body models.StatusUpdateRequest true "状态信息（可选值：pending待审核、approved已通过、rejected已拒绝）"
+// @Success 200 {object} models.Response "状态更新成功"
+// @Failure 400 {object} models.Response "无效的报名ID或状态值"
+// @Failure 403 {object} models.Response "无权限访问"
+// @Failure 500 {object} models.Response "服务器内部错误"
 // @Router /registrations/{id}/status [put]
 func (h *RegistrationHandler) UpdateRegistrationStatus(c *gin.Context) {
 	id := uint(0)

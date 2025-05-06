@@ -1,5 +1,12 @@
 basePath: /api
 definitions:
+  models.ActivitiesResponse:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/models.Activity'
+        type: array
+    type: object
   models.Activity:
     properties:
       capacity:
@@ -22,6 +29,58 @@ definitions:
         type: string
       updated_at:
         type: string
+    type: object
+  models.ChangePasswordRequest:
+    properties:
+      new_password:
+        example: new_password
+        type: string
+      old_password:
+        example: old_password
+        type: string
+    required:
+    - new_password
+    - old_password
+    type: object
+  models.LoginRequest:
+    properties:
+      password:
+        example: your_password
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  models.LoginResponse:
+    properties:
+      message:
+        type: string
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+    type: object
+  models.RegisterRequest:
+    properties:
+      password:
+        example: your_password
+        type: string
+      role:
+        enum:
+        - admin
+        - volunteer
+        example: volunteer
+        type: string
+      username:
+        example: john_doe
+        type: string
+    required:
+    - password
+    - role
+    - username
     type: object
   models.Registration:
     properties:
@@ -48,6 +107,52 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.RegistrationsResponse:
+    properties:
+      registrations:
+        items:
+          $ref: '#/definitions/models.Registration'
+        type: array
+    type: object
+  models.Response:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  models.StatusUpdateRequest:
+    properties:
+      status:
+        type: string
+    required:
+    - status
+    type: object
+  models.User:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      role:
+        description: admin或volunteer
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  models.UsersResponse:
+    properties:
+      users:
+        items:
+          $ref: '#/definitions/models.User'
+        type: array
+    type: object
   models.Volunteer:
     properties:
       activities:
@@ -71,6 +176,13 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.VolunteersResponse:
+    properties:
+      volunteers:
+        items:
+          $ref: '#/definitions/models.Volunteer'
+        type: array
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -83,29 +195,31 @@ paths:
     get:
       consumes:
       - application/json
-      description: 获取所有志愿者活动的列表
+      description: 获取所有志愿者活动的列表（需要管理员权限）
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 活动列表
           schema:
-            items:
-              $ref: '#/definitions/models.Activity'
-            type: array
+            $ref: '#/definitions/models.ActivitiesResponse'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 获取活动列表
       tags:
       - 活动管理
     post:
       consumes:
       - application/json
-      description: 创建一个新的志愿者活动
+      description: 创建一个新的志愿者活动（需要管理员权限）
       parameters:
       - description: 活动信息
         in: body
@@ -117,21 +231,23 @@ paths:
       - application/json
       responses:
         "201":
-          description: Created
+          description: 创建成功的活动信息
           schema:
             $ref: '#/definitions/models.Activity'
         "400":
-          description: Bad Request
+          description: 请求参数无效
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 创建新活动
       tags:
       - 活动管理
@@ -139,7 +255,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: 删除指定ID的活动
+      description: 删除指定ID的活动（需要管理员权限）
       parameters:
       - description: 活动ID
         in: path
@@ -150,30 +266,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 活动删除成功
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
         "400":
-          description: Bad Request
+          description: 无效的ID参数
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 删除活动
       tags:
       - 活动管理
     put:
       consumes:
       - application/json
-      description: 更新指定ID的活动信息
+      description: 更新指定ID的活动信息（需要管理员权限）
       parameters:
       - description: 活动ID
         in: path
@@ -190,21 +306,23 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 更新后的活动信息
           schema:
             $ref: '#/definitions/models.Activity'
         "400":
-          description: Bad Request
+          description: 无效的ID参数或请求数据
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 更新活动信息
       tags:
       - 活动管理
@@ -212,7 +330,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: 获取指定活动的所有报名记录
+      description: 获取指定活动的所有报名记录（需要志愿者权限）
       parameters:
       - description: 活动ID
         in: path
@@ -223,94 +341,281 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 报名记录列表
           schema:
-            items:
-              $ref: '#/definitions/models.Registration'
-            type: array
+            $ref: '#/definitions/models.RegistrationsResponse'
         "400":
-          description: Bad Request
+          description: 无效的活动ID
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 获取活动报名列表
       tags:
       - 报名管理
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录并获取认证token
+      parameters:
+      - description: 登录信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 登录成功
+          schema:
+            $ref: '#/definitions/models.LoginResponse'
+        "400":
+          description: 请求参数无效
+          schema:
+            $ref: '#/definitions/models.Response'
+        "401":
+          description: 用户名或密码错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      summary: 用户登录
+      tags:
+      - 认证管理
+  /auth/password:
+    put:
+      consumes:
+      - application/json
+      description: 修改用户密码
+      parameters:
+      - description: 密码修改信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 密码修改成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 请求参数无效或密码错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 修改密码
+      tags:
+      - 用户管理
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: 创建新用户账号
+      parameters:
+      - description: 注册信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 注册成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 请求参数无效或注册失败
+          schema:
+            $ref: '#/definitions/models.Response'
+      summary: 用户注册
+      tags:
+      - 认证管理
   /registrations/{id}/status:
     put:
       consumes:
       - application/json
-      description: 更新指定报名记录的状态
+      description: 更新指定报名记录的状态（需要志愿者权限）
       parameters:
       - description: 报名ID
         in: path
         name: id
         required: true
         type: integer
-      - description: 状态信息
+      - description: 状态信息（可选值：pending待审核、approved已通过、rejected已拒绝）
         in: body
         name: status
         required: true
         schema:
-          type: object
+          $ref: '#/definitions/models.StatusUpdateRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 状态更新成功
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
         "400":
-          description: Bad Request
+          description: 无效的报名ID或状态值
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 更新报名状态
       tags:
       - 报名管理
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有用户信息（仅管理员可用）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户列表
+          schema:
+            $ref: '#/definitions/models.UsersResponse'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取用户列表
+      tags:
+      - 用户管理
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 删除指定用户（仅管理员可用）
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 用户删除成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 无效的用户ID
+          schema:
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 删除用户
+      tags:
+      - 用户管理
+  /users/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: 更新指定用户的状态（仅管理员可用）
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 状态信息
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.StatusUpdateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 状态更新成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 无效的用户ID或状态
+          schema:
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新用户状态
+      tags:
+      - 用户管理
   /volunteers:
     get:
       consumes:
       - application/json
-      description: 获取所有志愿者的列表
+      description: 获取所有志愿者的列表（需要管理员权限）
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 志愿者列表
           schema:
-            items:
-              $ref: '#/definitions/models.Volunteer'
-            type: array
+            $ref: '#/definitions/models.VolunteersResponse'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 获取志愿者列表
       tags:
       - 志愿者管理
     post:
       consumes:
       - application/json
-      description: 创建一个新的志愿者信息
+      description: 创建一个新的志愿者信息（需要管理员权限）
       parameters:
       - description: 志愿者信息
         in: body
@@ -322,21 +627,23 @@ paths:
       - application/json
       responses:
         "201":
-          description: Created
+          description: 创建成功的志愿者信息
           schema:
             $ref: '#/definitions/models.Volunteer'
         "400":
-          description: Bad Request
+          description: 请求参数无效
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 创建新志愿者
       tags:
       - 志愿者管理
@@ -344,7 +651,7 @@ paths:
     delete:
       consumes:
       - application/json
-      description: 删除指定ID的志愿者
+      description: 删除指定ID的志愿者（需要管理员权限）
       parameters:
       - description: 志愿者ID
         in: path
@@ -355,30 +662,30 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 志愿者删除成功
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
         "400":
-          description: Bad Request
+          description: 无效的ID参数
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 删除志愿者
       tags:
       - 志愿者管理
     put:
       consumes:
       - application/json
-      description: 更新指定ID的志愿者信息
+      description: 更新指定ID的志愿者信息（需要管理员权限）
       parameters:
       - description: 志愿者ID
         in: path
@@ -395,21 +702,23 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 更新后的志愿者信息
           schema:
             $ref: '#/definitions/models.Volunteer'
         "400":
-          description: Bad Request
+          description: 无效的ID参数或请求数据
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
         "500":
-          description: Internal Server Error
+          description: 服务器内部错误
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
       summary: 更新志愿者信息
       tags:
       - 志愿者管理

@@ -4,6 +4,17 @@ import (
 	"time"
 )
 
+// User 用户模型
+type User struct {
+	ID        uint      `json:"id" gorm:"primarykey"`
+	Username  string    `json:"username" gorm:"unique"`
+	Password  string    `json:"password"`
+	Role      string    `json:"role"` // admin或volunteer
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
 // Activity 活动模型
 type Activity struct {
 	ID          uint      `json:"id" gorm:"primarykey"`

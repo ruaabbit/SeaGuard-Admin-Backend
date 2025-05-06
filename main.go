@@ -3,10 +3,11 @@ package main
 import (
 	"log"
 
-	"seaguard-admin-backend/config"
-	"seaguard-admin-backend/handlers"
-	"seaguard-admin-backend/repository"
-	"seaguard-admin-backend/service"
+"seaguard-admin-backend/config"
+"seaguard-admin-backend/handlers"
+"seaguard-admin-backend/middleware"
+"seaguard-admin-backend/repository"
+"seaguard-admin-backend/service"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -27,20 +28,23 @@ func main() {
 	// 初始化数据库
 	config.InitDatabase()
 
-	// 初始化repository层
-	activityRepo := repository.NewActivityRepository()
-	volunteerRepo := repository.NewVolunteerRepository()
-	registrationRepo := repository.NewRegistrationRepository()
+// 初始化repository层
+userRepo := repository.NewUserRepository(config.DB)
+activityRepo := repository.NewActivityRepository()
+volunteerRepo := repository.NewVolunteerRepository()
+registrationRepo := repository.NewRegistrationRepository()
 
-	// 初始化service层
-	activityService := service.NewActivityService(activityRepo)
-	volunteerService := service.NewVolunteerService(volunteerRepo)
-	registrationService := service.NewRegistrationService(registrationRepo, activityRepo)
+// 初始化service层
+userService := service.NewUserService(userRepo)
+activityService := service.NewActivityService(activityRepo)
+volunteerService := service.NewVolunteerService(volunteerRepo)
+registrationService := service.NewRegistrationService(registrationRepo, activityRepo)
 
-	// 初始化handlers
-	activityHandler := handlers.NewActivityHandler(activityService)
-	volunteerHandler := handlers.NewVolunteerHandler(volunteerService)
-	registrationHandler := handlers.NewRegistrationHandler(registrationService)
+// 初始化handlers
+userHandler := handlers.NewUserHandler(userService)
+activityHandler := handlers.NewActivityHandler(activityService)
+volunteerHandler := handlers.NewVolunteerHandler(volunteerService)
+registrationHandler := handlers.NewRegistrationHandler(registrationService)
 
 	// 创建gin引擎
 	r := gin.Default()
@@ -52,21 +56,43 @@ func main() {
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
 	r.Use(cors.New(config))
 
-	// 活动相关路由
-	r.GET("/api/activities", activityHandler.ListActivities)
-	r.POST("/api/activities", activityHandler.CreateActivity)
-	r.PUT("/api/activities/:id", activityHandler.UpdateActivity)
-	r.DELETE("/api/activities/:id", activityHandler.DeleteActivity)
+// 认证相关路由（无需认证）
+r.POST("/api/auth/register", userHandler.Register)
+r.POST("/api/auth/login", userHandler.Login)
 
-	// 志愿者相关路由
-	r.GET("/api/volunteers", volunteerHandler.ListVolunteers)
-	r.POST("/api/volunteers", volunteerHandler.CreateVolunteer)
-	r.PUT("/api/volunteers/:id", volunteerHandler.UpdateVolunteer)
-	r.DELETE("/api/volunteers/:id", volunteerHandler.DeleteVolunteer)
+// 用户相关路由（需要认证）
+auth := r.Group("/api", middleware.AuthMiddleware(userService))
+{
+// 用户管理（仅管理员）
+admin := auth.Group("", middleware.AdminRequired())
+{
+admin.GET("/users", userHandler.ListUsers)
+admin.PUT("/users/:id/status", userHandler.UpdateUserStatus)
+admin.DELETE("/users/:id", userHandler.DeleteUser)
+}
 
-	// 报名相关路由
-	r.GET("/api/activities/:id/registrations", registrationHandler.ListActivityRegistrations)
-	r.PUT("/api/registrations/:id/status", registrationHandler.UpdateRegistrationStatus)
+// 活动管理
+admin.GET("/activities", activityHandler.ListActivities)
+admin.POST("/activities", activityHandler.CreateActivity)
+admin.PUT("/activities/:id", activityHandler.UpdateActivity)
+admin.DELETE("/activities/:id", activityHandler.DeleteActivity)
+
+// 志愿者相关路由（需要管理员权限）
+admin.GET("/volunteers", volunteerHandler.ListVolunteers)
+admin.POST("/volunteers", volunteerHandler.CreateVolunteer)
+admin.PUT("/volunteers/:id", volunteerHandler.UpdateVolunteer)
+admin.DELETE("/volunteers/:id", volunteerHandler.DeleteVolunteer)
+
+// 报名相关路由（需要志愿者权限）
+volunteer := auth.Group("", middleware.VolunteerRequired())
+{
+volunteer.GET("/activities/:id/registrations", registrationHandler.ListActivityRegistrations)
+volunteer.PUT("/registrations/:id/status", registrationHandler.UpdateRegistrationStatus)
+}
+
+// 通用功能
+auth.PUT("/auth/password", userHandler.ChangePassword)
+}
 
 // Swagger API文档路由
 r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

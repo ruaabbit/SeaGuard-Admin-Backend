@@ -8,10 +8,11 @@ import (
 
 // VolunteerService 志愿者服务接口
 type VolunteerService interface {
-	GetAllVolunteers() ([]models.Volunteer, error)
-	CreateVolunteer(volunteer *models.Volunteer) error
-	UpdateVolunteer(id uint, volunteer *models.Volunteer) error
-	DeleteVolunteer(id uint) error
+GetAllVolunteers() ([]models.Volunteer, error)
+CreateVolunteer(volunteer *models.Volunteer) error
+UpdateVolunteer(id uint, volunteer *models.Volunteer) error
+DeleteVolunteer(id uint) error
+UpdateVolunteerInfo(id uint, req *models.UpdateVolunteerInfoRequest) error
 }
 
 type volunteerService struct {
@@ -56,5 +57,22 @@ func (s *volunteerService) UpdateVolunteer(id uint, volunteer *models.Volunteer)
 
 // DeleteVolunteer 删除志愿者
 func (s *volunteerService) DeleteVolunteer(id uint) error {
-	return s.repo.Delete(id)
+return s.repo.Delete(id)
+}
+
+// UpdateVolunteerInfo 更新志愿者个人信息
+func (s *volunteerService) UpdateVolunteerInfo(id uint, req *models.UpdateVolunteerInfoRequest) error {
+    existingVolunteer, err := s.repo.FindByID(id)
+    if err != nil {
+        return err
+    }
+
+    // 只更新允许的字段
+    existingVolunteer.Name = req.Name
+    existingVolunteer.Phone = req.Phone
+    existingVolunteer.Email = req.Email
+    existingVolunteer.Address = req.Address
+    existingVolunteer.UpdatedAt = time.Now()
+
+    return s.repo.Update(existingVolunteer)
 }
