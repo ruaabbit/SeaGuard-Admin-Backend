@@ -65,8 +65,21 @@ definitions:
     type: object
   models.RegisterRequest:
     properties:
+      address:
+        example: 北京市海淀区
+        type: string
+      email:
+        example: zhangsan@example.com
+        type: string
+      name:
+        description: Volunteer个人信息（当role为volunteer时必填）
+        example: 张三
+        type: string
       password:
         example: your_password
+        type: string
+      phone:
+        example: "13800138000"
         type: string
       role:
         enum:
@@ -75,6 +88,7 @@ definitions:
         example: volunteer
         type: string
       username:
+        description: User账号信息
         example: john_doe
         type: string
     required:
@@ -127,6 +141,26 @@ definitions:
         type: string
     required:
     - status
+    type: object
+  models.UpdateVolunteerInfoRequest:
+    properties:
+      address:
+        example: 北京市海淀区
+        type: string
+      email:
+        example: zhangsan@example.com
+        type: string
+      name:
+        example: 张三
+        type: string
+      phone:
+        example: "13800138000"
+        type: string
+    required:
+    - address
+    - email
+    - name
+    - phone
     type: object
   models.User:
     properties:
@@ -423,9 +457,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: 创建新用户账号
+      description: 创建新用户账号。如果role为volunteer，则同时创建志愿者信息
       parameters:
-      - description: 注册信息
+      - description: 注册信息。当role为volunteer时，需要提供name、phone、email、address等志愿者信息
         in: body
         name: request
         required: true
@@ -439,7 +473,7 @@ paths:
           schema:
             $ref: '#/definitions/models.Response'
         "400":
-          description: 请求参数无效或注册失败
+          description: '请求参数无效: 1. 用户名已存在 2. 必填字段缺失 3. role为volunteer时未提供志愿者信息'
           schema:
             $ref: '#/definitions/models.Response'
       summary: 用户注册
@@ -587,6 +621,46 @@ paths:
       summary: 更新用户状态
       tags:
       - 用户管理
+  /volunteer/my-info:
+    put:
+      consumes:
+      - application/json
+      description: 已登录的志愿者用户更新自己的个人信息
+      parameters:
+      - description: 志愿者个人信息 (姓名、电话、邮箱、地址)
+        in: body
+        name: info
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateVolunteerInfoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 请求参数无效：1. 必填字段缺失 2. 邮箱格式错误
+          schema:
+            $ref: '#/definitions/models.Response'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问：非志愿者用户
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 更新个人志愿者信息
+      tags:
+      - 志愿者
   /volunteers:
     get:
       consumes:
