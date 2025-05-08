@@ -23,7 +23,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "获取所有志愿者活动的列表（需要管理员权限）",
+                "description": "获取所有可以报名的志愿者活动列表",
                 "consumes": [
                     "application/json"
                 ],
@@ -33,7 +33,7 @@ const docTemplate = `{
                 "tags": [
                     "活动管理"
                 ],
-                "summary": "获取活动列表",
+                "summary": "获取可报名活动列表（志愿者）",
                 "responses": {
                     "200": {
                         "description": "活动列表",
@@ -228,6 +228,149 @@ const docTemplate = `{
                 }
             }
         },
+        "/activities/{id}/register": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "志愿者报名参加活动",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "报名管理"
+                ],
+                "summary": "报名活动",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "活动ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "报名信息",
+                        "name": "registration",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegistrationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "报名成功",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "无效的活动ID或报名信息",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限访问",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "409": {
+                        "description": "已经报名过该活动",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/activities/{id}/registration": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "查询当前用户在指定活动的报名状态",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "报名管理"
+                ],
+                "summary": "查询个人报名状态",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "活动ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "报名信息",
+                        "schema": {
+                            "$ref": "#/definitions/models.Registration"
+                        }
+                    },
+                    "400": {
+                        "description": "无效的活动ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限访问",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "未找到报名记录",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/activities/{id}/registrations": {
             "get": {
                 "security": [
@@ -266,6 +409,46 @@ const docTemplate = `{
                         "description": "无效的活动ID",
                         "schema": {
                             "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限访问",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/activities": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "获取所有志愿者活动的列表（需要管理员权限）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "活动管理"
+                ],
+                "summary": "获取活动列表（管理员）",
+                "responses": {
+                    "200": {
+                        "description": "活动列表",
+                        "schema": {
+                            "$ref": "#/definitions/models.ActivitiesResponse"
                         }
                     },
                     "403": {
@@ -638,6 +821,56 @@ const docTemplate = `{
             }
         },
         "/volunteer/my-info": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "已登录的志愿者用户获取自己的个人信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "志愿者"
+                ],
+                "summary": "获取个人志愿者信息",
+                "responses": {
+                    "200": {
+                        "description": "志愿者个人信息",
+                        "schema": {
+                            "$ref": "#/definitions/models.Volunteer"
+                        }
+                    },
+                    "401": {
+                        "description": "未登录",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "403": {
+                        "description": "无权限访问：非志愿者用户",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "未找到志愿者信息",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "500": {
+                        "description": "服务器内部错误",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    }
+                }
+            },
             "put": {
                 "security": [
                     {
@@ -687,6 +920,12 @@ const docTemplate = `{
                     },
                     "403": {
                         "description": "无权限访问：非志愿者用户",
+                        "schema": {
+                            "$ref": "#/definitions/models.Response"
+                        }
+                    },
+                    "404": {
+                        "description": "未找到志愿者信息",
                         "schema": {
                             "$ref": "#/definitions/models.Response"
                         }
@@ -917,11 +1156,17 @@ const docTemplate = `{
         "models.ActivitiesResponse": {
             "type": "object",
             "properties": {
-                "activities": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/models.Activity"
                     }
+                },
+                "message": {
+                    "type": "string"
                 }
             }
         },
@@ -1087,6 +1332,47 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "user_id": {
+                    "description": "添加UserID字段",
+                    "type": "integer"
+                }
+            }
+        },
+        "models.RegistrationRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "emergency_contact",
+                "emergency_phone",
+                "id_card",
+                "name",
+                "phone"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "zhangsan@example.com"
+                },
+                "emergency_contact": {
+                    "type": "string",
+                    "example": "李四"
+                },
+                "emergency_phone": {
+                    "type": "string",
+                    "example": "13900139000"
+                },
+                "id_card": {
+                    "type": "string",
+                    "example": "110101199001011234"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "张三"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "13800138000"
                 }
             }
         },
@@ -1220,6 +1506,12 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.User"
+                },
+                "user_id": {
+                    "type": "integer"
                 }
             }
         },

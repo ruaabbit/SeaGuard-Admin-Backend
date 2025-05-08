@@ -12,7 +12,9 @@ GetAllVolunteers() ([]models.Volunteer, error)
 CreateVolunteer(volunteer *models.Volunteer) error
 UpdateVolunteer(id uint, volunteer *models.Volunteer) error
 DeleteVolunteer(id uint) error
-UpdateVolunteerInfo(id uint, req *models.UpdateVolunteerInfoRequest) error
+UpdateVolunteerInfo(userID uint, req *models.UpdateVolunteerInfoRequest) error
+GetVolunteerInfo(userID uint) (*models.Volunteer, error)
+FindByUserID(userID uint) (*models.Volunteer, error)
 }
 
 type volunteerService struct {
@@ -60,19 +62,29 @@ func (s *volunteerService) DeleteVolunteer(id uint) error {
 return s.repo.Delete(id)
 }
 
+// GetVolunteerInfo 获取志愿者个人信息
+func (s *volunteerService) GetVolunteerInfo(userID uint) (*models.Volunteer, error) {
+    return s.repo.FindByUserID(userID)
+}
+
+// FindByUserID 根据用户ID查找志愿者
+func (s *volunteerService) FindByUserID(userID uint) (*models.Volunteer, error) {
+    return s.repo.FindByUserID(userID)
+}
+
 // UpdateVolunteerInfo 更新志愿者个人信息
-func (s *volunteerService) UpdateVolunteerInfo(id uint, req *models.UpdateVolunteerInfoRequest) error {
-    existingVolunteer, err := s.repo.FindByID(id)
-    if err != nil {
-        return err
-    }
+func (s *volunteerService) UpdateVolunteerInfo(userID uint, req *models.UpdateVolunteerInfoRequest) error {
+existingVolunteer, err := s.repo.FindByUserID(userID)
+	if err != nil {
+		return err
+	}
 
-    // 只更新允许的字段
-    existingVolunteer.Name = req.Name
-    existingVolunteer.Phone = req.Phone
-    existingVolunteer.Email = req.Email
-    existingVolunteer.Address = req.Address
-    existingVolunteer.UpdatedAt = time.Now()
+	// 只更新允许的字段
+	existingVolunteer.Name = req.Name
+	existingVolunteer.Phone = req.Phone
+	existingVolunteer.Email = req.Email
+	existingVolunteer.Address = req.Address
+	existingVolunteer.UpdatedAt = time.Now()
 
-    return s.repo.Update(existingVolunteer)
+	return s.repo.Update(existingVolunteer)
 }

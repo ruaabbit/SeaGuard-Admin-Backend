@@ -20,8 +20,8 @@ func NewActivityHandler(service service.ActivityService) *ActivityHandler {
 	}
 }
 
-// ListActivities godoc
-// @Summary 获取活动列表
+// ListActivitiesForAdmin godoc
+// @Summary 获取活动列表（管理员）
 // @Description 获取所有志愿者活动的列表（需要管理员权限）
 // @Tags 活动管理
 // @Accept json
@@ -30,14 +30,50 @@ func NewActivityHandler(service service.ActivityService) *ActivityHandler {
 // @Success 200 {object} models.ActivitiesResponse "活动列表"
 // @Failure 403 {object} models.Response "无权限访问"
 // @Failure 500 {object} models.Response "服务器内部错误"
+// @Router /admin/activities [get]
+func (h *ActivityHandler) ListActivitiesForAdmin(c *gin.Context) {
+    activities, err := h.service.GetAllActivities()
+    if err != nil {
+        c.JSON(500, models.ActivitiesResponse{
+            Code:    500,
+            Message: "获取活动列表失败",
+            Data:    nil,
+        })
+        return
+    }
+    c.JSON(200, models.ActivitiesResponse{
+        Code:    200,
+        Message: "获取活动列表成功",
+        Data:    activities,
+    })
+}
+
+// ListAvailableActivities godoc
+// @Summary 获取可报名活动列表（志愿者）
+// @Description 获取所有可以报名的志愿者活动列表
+// @Tags 活动管理
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} models.ActivitiesResponse "活动列表"
+// @Failure 403 {object} models.Response "无权限访问"
+// @Failure 500 {object} models.Response "服务器内部错误"
 // @Router /activities [get]
-func (h *ActivityHandler) ListActivities(c *gin.Context) {
-	activities, err := h.service.GetAllActivities()
-	if err != nil {
-		c.JSON(500, gin.H{"error": "获取活动列表失败"})
-		return
-	}
-	c.JSON(200, activities)
+func (h *ActivityHandler) ListAvailableActivities(c *gin.Context) {
+    activities, err := h.service.GetAvailableActivities()
+    if err != nil {
+        c.JSON(500, models.ActivitiesResponse{
+            Code:    500,
+            Message: "获取活动列表失败",
+            Data:    nil,
+        })
+        return
+    }
+    c.JSON(200, models.ActivitiesResponse{
+        Code:    200,
+        Message: "获取可报名活动列表成功",
+        Data:    activities,
+    })
 }
 
 // CreateActivity godoc
@@ -55,17 +91,31 @@ func (h *ActivityHandler) ListActivities(c *gin.Context) {
 // @Router /activities [post]
 func (h *ActivityHandler) CreateActivity(c *gin.Context) {
 	var activity models.Activity
-	if err := c.ShouldBindJSON(&activity); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
+if err := c.ShouldBindJSON(&activity); err != nil {
+    c.JSON(400, models.Response{
+        Error: "请求数据无效：" + err.Error(),
+    })
+    return
+}
 
-	if err := h.service.CreateActivity(&activity); err != nil {
-		c.JSON(500, gin.H{"error": "创建活动失败"})
-		return
-	}
+// 验证活动日期
+if activity.Date.IsZero() {
+    c.JSON(400, models.Response{
+        Error: "活动日期不能为空",
+    })
+    return
+}
 
-	c.JSON(201, activity)
+if err := h.service.CreateActivity(&activity); err != nil {
+    c.JSON(500, models.Response{
+        Error: "创建活动失败：" + err.Error(),
+    })
+    return
+}
+
+c.JSON(201, models.Response{
+    Message: "创建活动成功",
+})
 }
 
 // UpdateActivity godoc
@@ -84,26 +134,43 @@ func (h *ActivityHandler) CreateActivity(c *gin.Context) {
 // @Router /activities/{id} [put]
 func (h *ActivityHandler) UpdateActivity(c *gin.Context) {
 	var activity models.Activity
-	if err := c.ShouldBindJSON(&activity); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
-	}
+if err := c.ShouldBindJSON(&activity); err != nil {
+    c.JSON(400, models.Response{
+        Error: "请求数据无效：" + err.Error(),
+    })
+    return
+}
 
-	id := uint(0)
-	if idParam := c.Param("id"); idParam != "" {
-		if n, err := strconv.ParseUint(idParam, 10, 32); err == nil {
-			id = uint(n)
-		} else {
-			c.JSON(400, gin.H{"error": "无效的ID参数"})
-			return
-		}
-	}
-	if err := h.service.UpdateActivity(id, &activity); err != nil {
-		c.JSON(500, gin.H{"error": "更新活动失败"})
-		return
-	}
+// 验证活动日期
+if activity.Date.IsZero() {
+    c.JSON(400, models.Response{
+        Error: "活动日期不能为空",
+    })
+    return
+}
 
-	c.JSON(200, activity)
+id := uint(0)
+if idParam := c.Param("id"); idParam != "" {
+    if n, err := strconv.ParseUint(idParam, 10, 32); err == nil {
+        id = uint(n)
+    } else {
+        c.JSON(400, models.Response{
+            Error: "无效的ID参数",
+        })
+        return
+    }
+}
+
+if err := h.service.UpdateActivity(id, &activity); err != nil {
+    c.JSON(500, models.Response{
+        Error: "更新活动失败：" + err.Error(),
+    })
+    return
+}
+
+c.JSON(200, models.Response{
+    Message: "更新活动成功",
+})
 }
 
 // DeleteActivity godoc
@@ -120,18 +187,26 @@ func (h *ActivityHandler) UpdateActivity(c *gin.Context) {
 // @Failure 500 {object} models.Response "服务器内部错误"
 // @Router /activities/{id} [delete]
 func (h *ActivityHandler) DeleteActivity(c *gin.Context) {
-	id := uint(0)
-	if idParam := c.Param("id"); idParam != "" {
-		if n, err := strconv.ParseUint(idParam, 10, 32); err == nil {
-			id = uint(n)
-		} else {
-			c.JSON(400, gin.H{"error": "无效的ID参数"})
-			return
-		}
-	}
-	if err := h.service.DeleteActivity(id); err != nil {
-		c.JSON(500, gin.H{"error": "删除活动失败"})
-		return
-	}
-	c.JSON(200, gin.H{"message": "活动删除成功"})
+id := uint(0)
+if idParam := c.Param("id"); idParam != "" {
+    if n, err := strconv.ParseUint(idParam, 10, 32); err == nil {
+        id = uint(n)
+    } else {
+        c.JSON(400, models.Response{
+            Error: "无效的ID参数",
+        })
+        return
+    }
+}
+
+if err := h.service.DeleteActivity(id); err != nil {
+    c.JSON(500, models.Response{
+        Error: "删除活动失败：" + err.Error(),
+    })
+    return
+}
+
+c.JSON(200, models.Response{
+    Message: "活动删除成功",
+})
 }

@@ -137,6 +137,37 @@ func (h *VolunteerHandler) DeleteVolunteer(c *gin.Context) {
 c.JSON(200, gin.H{"message": "志愿者删除成功"})
 }
 
+// GetMyInfo godoc
+// @Summary 获取个人志愿者信息
+// @Description 已登录的志愿者用户获取自己的个人信息
+// @Tags 志愿者
+// @Accept json
+// @Produce json
+// @Security ApiKeyAuth
+// @Success 200 {object} models.Volunteer "志愿者个人信息"
+// @Failure 401 {object} models.Response "未登录"
+// @Failure 403 {object} models.Response "无权限访问：非志愿者用户"
+// @Failure 404 {object} models.Response "未找到志愿者信息"
+// @Failure 500 {object} models.Response "服务器内部错误"
+// @Router /volunteer/my-info [get]
+func (h *VolunteerHandler) GetMyInfo(c *gin.Context) {
+    // 从上下文获取当前用户ID
+    userID, exists := c.Get("userID")
+    if !exists {
+        c.JSON(401, gin.H{"error": "未登录"})
+        return
+    }
+
+    // 获取志愿者信息
+    volunteer, err := h.service.GetVolunteerInfo(userID.(uint))
+    if err != nil {
+        c.JSON(404, gin.H{"error": "未找到志愿者信息"})
+        return
+    }
+
+    c.JSON(200, volunteer)
+}
+
 // UpdateMyInfo godoc
 // @Summary 更新个人志愿者信息
 // @Description 已登录的志愿者用户更新自己的个人信息
@@ -149,6 +180,7 @@ c.JSON(200, gin.H{"message": "志愿者删除成功"})
 // @Failure 400 {object} models.Response "请求参数无效：1. 必填字段缺失 2. 邮箱格式错误"
 // @Failure 401 {object} models.Response "未登录"
 // @Failure 403 {object} models.Response "无权限访问：非志愿者用户"
+// @Failure 404 {object} models.Response "未找到志愿者信息"
 // @Failure 500 {object} models.Response "服务器内部错误"
 // @Example {
 //   "request": {
@@ -175,7 +207,11 @@ func (h *VolunteerHandler) UpdateMyInfo(c *gin.Context) {
     }
 
     // 更新志愿者信息
-    if err := h.service.UpdateVolunteerInfo(uint(userID.(float64)), &req); err != nil {
+    if err := h.service.UpdateVolunteerInfo(userID.(uint), &req); err != nil {
+        if err.Error() == "record not found" {
+            c.JSON(404, gin.H{"error": "未找到志愿者信息"})
+            return
+        }
         c.JSON(500, gin.H{"error": "更新个人信息失败"})
         return
     }

@@ -2,10 +2,14 @@ basePath: /api
 definitions:
   models.ActivitiesResponse:
     properties:
-      activities:
+      code:
+        type: integer
+      data:
         items:
           $ref: '#/definitions/models.Activity'
         type: array
+      message:
+        type: string
     type: object
   models.Activity:
     properties:
@@ -120,6 +124,37 @@ definitions:
         type: string
       updated_at:
         type: string
+      user_id:
+        description: 添加UserID字段
+        type: integer
+    type: object
+  models.RegistrationRequest:
+    properties:
+      email:
+        example: zhangsan@example.com
+        type: string
+      emergency_contact:
+        example: 李四
+        type: string
+      emergency_phone:
+        example: "13900139000"
+        type: string
+      id_card:
+        example: "110101199001011234"
+        type: string
+      name:
+        example: 张三
+        type: string
+      phone:
+        example: "13800138000"
+        type: string
+    required:
+    - email
+    - emergency_contact
+    - emergency_phone
+    - id_card
+    - name
+    - phone
     type: object
   models.RegistrationsResponse:
     properties:
@@ -209,6 +244,10 @@ definitions:
         type: string
       updated_at:
         type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        type: integer
     type: object
   models.VolunteersResponse:
     properties:
@@ -229,7 +268,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: 获取所有志愿者活动的列表（需要管理员权限）
+      description: 获取所有可以报名的志愿者活动列表
       produces:
       - application/json
       responses:
@@ -247,7 +286,7 @@ paths:
             $ref: '#/definitions/models.Response'
       security:
       - ApiKeyAuth: []
-      summary: 获取活动列表
+      summary: 获取可报名活动列表（志愿者）
       tags:
       - 活动管理
     post:
@@ -360,6 +399,98 @@ paths:
       summary: 更新活动信息
       tags:
       - 活动管理
+  /activities/{id}/register:
+    post:
+      consumes:
+      - application/json
+      description: 志愿者报名参加活动
+      parameters:
+      - description: 活动ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 报名信息
+        in: body
+        name: registration
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistrationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 报名成功
+          schema:
+            $ref: '#/definitions/models.Response'
+        "400":
+          description: 无效的活动ID或报名信息
+          schema:
+            $ref: '#/definitions/models.Response'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
+        "409":
+          description: 已经报名过该活动
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 报名活动
+      tags:
+      - 报名管理
+  /activities/{id}/registration:
+    get:
+      consumes:
+      - application/json
+      description: 查询当前用户在指定活动的报名状态
+      parameters:
+      - description: 活动ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 报名信息
+          schema:
+            $ref: '#/definitions/models.Registration'
+        "400":
+          description: 无效的活动ID
+          schema:
+            $ref: '#/definitions/models.Response'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
+        "404":
+          description: 未找到报名记录
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 查询个人报名状态
+      tags:
+      - 报名管理
   /activities/{id}/registrations:
     get:
       consumes:
@@ -395,6 +526,31 @@ paths:
       summary: 获取活动报名列表
       tags:
       - 报名管理
+  /admin/activities:
+    get:
+      consumes:
+      - application/json
+      description: 获取所有志愿者活动的列表（需要管理员权限）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 活动列表
+          schema:
+            $ref: '#/definitions/models.ActivitiesResponse'
+        "403":
+          description: 无权限访问
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取活动列表（管理员）
+      tags:
+      - 活动管理
   /auth/login:
     post:
       consumes:
@@ -622,6 +778,38 @@ paths:
       tags:
       - 用户管理
   /volunteer/my-info:
+    get:
+      consumes:
+      - application/json
+      description: 已登录的志愿者用户获取自己的个人信息
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 志愿者个人信息
+          schema:
+            $ref: '#/definitions/models.Volunteer'
+        "401":
+          description: 未登录
+          schema:
+            $ref: '#/definitions/models.Response'
+        "403":
+          description: 无权限访问：非志愿者用户
+          schema:
+            $ref: '#/definitions/models.Response'
+        "404":
+          description: 未找到志愿者信息
+          schema:
+            $ref: '#/definitions/models.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/models.Response'
+      security:
+      - ApiKeyAuth: []
+      summary: 获取个人志愿者信息
+      tags:
+      - 志愿者
     put:
       consumes:
       - application/json
@@ -650,6 +838,10 @@ paths:
             $ref: '#/definitions/models.Response'
         "403":
           description: 无权限访问：非志愿者用户
+          schema:
+            $ref: '#/definitions/models.Response'
+        "404":
+          description: 未找到志愿者信息
           schema:
             $ref: '#/definitions/models.Response'
         "500":

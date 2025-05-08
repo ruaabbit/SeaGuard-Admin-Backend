@@ -55,6 +55,7 @@ func (s *UserService) Register(req *models.RegisterRequest) error {
     // 如果是志愿者角色，创建志愿者信息
     if req.Role == "volunteer" {
         volunteer := &models.Volunteer{
+            UserID:     user.ID,  // 设置关联的用户ID
             Name:       req.Name,
             Phone:      req.Phone,
             Email:      req.Email,
@@ -111,7 +112,36 @@ func (s *UserService) ListUsers() ([]models.User, error) {
 }
 
 func (s *UserService) DeleteUser(id uint) error {
-	return s.userRepo.Delete(id)
+    // 开启事务
+    tx := config.DB.Begin()
+    defer func() {
+        if r := recover(); r != nil {
+            tx.Rollback()
+        }
+    }()
+
+    // 查询用户
+    user, err := s.userRepo.FindByID(id)
+    if err != nil {
+        tx.Rollback()
+        return err
+    }
+
+    // 如果是志愿者，先删除志愿者信息（由于设置了CASCADE，这步可以省略）
+    if user.Role == "volunteer" {
+        if err := tx.Where("user_id = ?", id).Delete(&models.Volunteer{}).Error; err != nil {
+            tx.Rollback()
+            return err
+        }
+    }
+
+    // 删除用户
+    if err := s.userRepo.Delete(id); err != nil {
+        tx.Rollback()
+        return err
+    }
+
+    return tx.Commit().Error
 }
 
 func (s *UserService) ChangePassword(userID uint, oldPassword, newPassword string) error {

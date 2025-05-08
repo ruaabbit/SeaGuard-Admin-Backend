@@ -7,11 +7,13 @@ import (
 
 // RegistrationRepository 报名记录仓储接口
 type RegistrationRepository interface {
-	FindByActivityID(activityID uint) ([]models.Registration, error)
-	FindByID(id uint) (*models.Registration, error)
-	Create(registration *models.Registration) error
-	Update(registration *models.Registration) error
-	UpdateStatus(id uint, status string) error
+FindByActivityID(activityID uint) ([]models.Registration, error)
+FindByID(id uint) (*models.Registration, error)
+Create(registration *models.Registration) error
+Update(registration *models.Registration) error
+UpdateStatus(id uint, status string) error
+FindByUserAndActivity(userID, activityID uint) (*models.Registration, error)
+CheckDuplicateRegistration(userID, activityID uint) (bool, error)
 }
 
 type registrationRepository struct{}
@@ -47,5 +49,21 @@ func (r *registrationRepository) Update(registration *models.Registration) error
 
 // UpdateStatus 更新报名状态
 func (r *registrationRepository) UpdateStatus(id uint, status string) error {
-	return config.DB.Model(&models.Registration{}).Where("id = ?", id).Update("status", status).Error
+return config.DB.Model(&models.Registration{}).Where("id = ?", id).Update("status", status).Error
+}
+
+// FindByUserAndActivity 查找用户在某个活动的报名记录
+func (r *registrationRepository) FindByUserAndActivity(userID, activityID uint) (*models.Registration, error) {
+    var registration models.Registration
+    err := config.DB.Where("user_id = ? AND activity_id = ?", userID, activityID).First(&registration).Error
+    return &registration, err
+}
+
+// CheckDuplicateRegistration 检查是否重复报名
+func (r *registrationRepository) CheckDuplicateRegistration(userID, activityID uint) (bool, error) {
+    var count int64
+    err := config.DB.Model(&models.Registration{}).
+        Where("user_id = ? AND activity_id = ?", userID, activityID).
+        Count(&count).Error
+    return count > 0, err
 }
